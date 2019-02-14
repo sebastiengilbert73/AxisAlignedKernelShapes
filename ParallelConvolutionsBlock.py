@@ -28,7 +28,7 @@ class ParallelConvolutionsBlock(torch.nn.Module):
             if kernelSize[1] % 2 != 1:
                 raise ValueError("ParallelConvolutionsBlock.__init__(): The kernel size {} second element is not odd".format(kernelSize))
 
-        self.kernelsList = []
+        self.kernelsList = torch.nn.ModuleList()
 
         for kernelNdx in range(len(kernelDimensionsList)):
             kernel = torch.nn.Conv2d(in_channels=inputNumberOfChannels,
@@ -40,13 +40,15 @@ class ParallelConvolutionsBlock(torch.nn.Module):
             self.kernelsList.append(kernel)
 
         self.dropout = torch.nn.Dropout(p=dropoutRatio)
+        self.relu = torch.nn.ReLU()
 
     def forward(self, inputs):
         activationsList = []
 
         # Compute the convolution with each kernel
         for kernel in self.kernelsList:
-            activation = torch.nn.ReLU(kernel(inputs))
+            activation = kernel(inputs)
+            activation = self.relu(activation)
             activationsList.append(activation)
 
         # Concatenate the activations
